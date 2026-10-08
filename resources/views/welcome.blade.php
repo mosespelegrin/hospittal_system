@@ -28,15 +28,8 @@
         <div class="aspect-[4/3] rounded-[2rem] bg-[var(--teal)] relative overflow-hidden shadow-2xl">
             <div class="absolute inset-0 bg-gradient-to-br from-[var(--teal)] via-[var(--teal-deep)] to-[var(--ink)] opacity-90"></div>
             <div class="absolute bottom-7 left-7 right-7 text-[var(--cream)]">
-                <div class="font-display text-3xl mb-1">{{ $doctors->count() }}+ Specialists</div>
-                <div class="text-sm opacity-70">across {{ $departments->count() }} departments, ready today</div>
-            </div>
-        </div>
-        <div class="mt-4 inline-flex items-center gap-3 bg-white border border-[var(--teal)]/10 rounded-2xl px-5 py-3.5 shadow-md rise rise-3">
-            <div class="w-2 h-2 rounded-full bg-[var(--coral)]"></div>
-            <div>
-                <span class="text-xs text-[var(--ink)]/50">Average wait time</span>
-                <span class="font-display text-lg text-[var(--teal-deep)] ml-2">12 min</span>
+                <div class="font-display text-3xl mb-1">{{ $doctors->count() }} {{ \Illuminate\Support\Str::plural('Specialist', $doctors->count()) }}</div>
+                <div class="text-sm opacity-70">across {{ $departments->count() }} {{ \Illuminate\Support\Str::plural('department', $departments->count()) }}</div>
             </div>
         </div>
     </div>
@@ -47,7 +40,7 @@
     <p class="text-[var(--ink)]/60 mb-12 rise rise-1">Choose a department to see available doctors, or just register and we'll route you correctly.</p>
 
     <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-        @foreach($departments as $i => $department)
+        @forelse($departments as $i => $department)
         <div class="rise bg-white/60 border border-[var(--teal)]/10 rounded-2xl p-6 hover:border-[var(--coral)]/40 hover:-translate-y-1 transition-all duration-300"
              style="animation-delay: {{ 0.05 * $i }}s">
             <div class="w-10 h-10 rounded-full bg-[var(--teal-tint)] flex items-center justify-center text-[var(--teal-deep)] font-display text-lg mb-4" aria-hidden="true">
@@ -58,14 +51,16 @@
                 {{ $doctors->where('department_id', $department->id)->count() }} doctor(s) available
             </div>
         </div>
-        @endforeach
+        @empty
+        <p class="rounded-2xl border border-dashed border-[var(--teal)]/25 bg-white/50 px-6 py-10 text-center text-[var(--ink)]/60 col-span-full">Our departments are being set up. Please check back soon, or call us on {{ config('hospital.phone') }}.</p>
+        @endforelse
     </div>
 </section>
 
 <section id="doctors" class="max-w-6xl mx-auto px-6 py-20 border-t border-[var(--teal)]/10">
     <h2 class="font-display text-3xl text-[var(--teal-deep)] mb-12 rise">Meet the Doctors</h2>
     <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-        @foreach($doctors->take(6) as $i => $doctor)
+        @forelse($doctors->take(6) as $i => $doctor)
         <div class="rise bg-white/60 border border-[var(--teal)]/10 rounded-2xl p-6" style="animation-delay: {{ 0.06 * $i }}s">
             <div class="w-14 h-14 rounded-full bg-[var(--teal)] text-[var(--cream)] font-display text-xl flex items-center justify-center mb-4" aria-hidden="true">
                 {{ substr(str_replace('Dr. ', '', $doctor->name), 0, 1) }}
@@ -74,7 +69,9 @@
             <div class="text-sm text-[var(--ink)]/60">{{ $doctor->specialization }}</div>
             <div class="text-xs text-[var(--coral)] mt-2">{{ $doctor->department->name ?? '' }}</div>
         </div>
-        @endforeach
+        @empty
+        <p class="rounded-2xl border border-dashed border-[var(--teal)]/25 bg-white/50 px-6 py-10 text-center text-[var(--ink)]/60 col-span-full">Our doctor profiles will appear here soon.</p>
+        @endforelse
     </div>
 </section>
 

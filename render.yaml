@@ -1,0 +1,68 @@
+# Render Blueprint: web service (Docker) + managed PostgreSQL.
+# Deploy: push to GitHub -> Render dashboard -> New -> Blueprint.
+services:
+  - type: web
+    name: amani-hospital
+    runtime: docker
+    plan: starter
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      - key: APP_NAME
+        value: Amani Hospital
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false           # paste output of: php artisan key:generate --show
+      - key: APP_URL
+        sync: false           # e.g. https://amani-hospital.onrender.com
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: APP_TIMEZONE
+        value: Africa/Dar_es_Salaam
+      - key: HOSPITAL_PHONE
+        sync: false
+      - key: HOSPITAL_EMAIL
+        sync: false
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase: { name: hospital-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: hospital-db, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: hospital-db, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: hospital-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: hospital-db, property: password }
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Amani Hospital
+
+databases:
+  - name: hospital-db
+    plan: basic-256mb
+    databaseName: hospital_system
+    user: hospital

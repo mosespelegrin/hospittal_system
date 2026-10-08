@@ -1,6 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Registration Successful — Amani Hospital')
+@section('noindex', '1')
 
 @section('content')
 <section class="max-w-2xl mx-auto px-6 py-24 text-center">
@@ -22,7 +23,6 @@
             <span class="text-sm text-[var(--ink)]/50">Full Name</span>
             <span class="font-medium text-[var(--ink)]">{{ $patient->full_name }}</span>
         </div>
-        @php $appointment = $patient->appointments()->latest()->first(); @endphp
         @if($appointment)
         <div class="flex justify-between items-center">
             <span class="text-sm text-[var(--ink)]/50">Doctor</span>

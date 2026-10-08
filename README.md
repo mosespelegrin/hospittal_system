@@ -1,70 +1,66 @@
-# Amani Hospital Management System
+# Amani Hospital
 
-A Laravel + Filament application for running a small hospital's front desk and back office: patients can request a consultation from the public website, and staff manage departments, doctors, patients, and appointments from an admin panel.
+Public consultation-booking website plus a staff back office.
 
-## What it does
+- **Public site** (`/`, `/consultation`, `/privacy`): patients register and book a consultation; no patient accounts.
+- **Staff panel** (`/admin`, Filament): admins, receptionists and doctors manage patients, appointments, doctors and departments. Doctors only see their own appointments and patients.
 
-- **Public consultation booking** — visitors pick a department (and optionally a doctor), request a date/time, and describe their complaint. The app auto-assigns an available doctor when none is chosen, avoids double-booking a doctor's slot, and reuses an existing patient record if the same name/phone has booked before.
-- **Admin panel** (`/admin`, built with [Filament](https://filamentphp.com)) — manage departments, doctors, patients, and appointments; a dashboard shows today's appointment count, pending appointments, and active patient/doctor totals.
-- **Role-based access**, via [spatie/laravel-permission](https://spatie.be/docs/laravel-permission):
-  - **admin** — full access to everything.
-  - **receptionist** — can manage patients and appointments day-to-day; can view (but not edit) doctors and departments; cannot delete anything.
-  - **doctor** — a read-only portal scoped to their own appointments and the patients tied to them, nothing else.
-- **Booking notifications** — patients get an email confirmation (if they gave one) and staff get notified of new bookings, via a Laravel notification currently wired to the mail channel.
-- **CSV export** of the patient list, and soft deletes (with restore/force-delete) on patients, doctors, and appointments so records aren't lost to an accidental click.
+## Stack
 
-## Tech stack
+Laravel 13 · PHP 8.3+ · Filament 5 · spatie/laravel-permission · Tailwind/Vite · MySQL (SQLite for tests, PostgreSQL on Render)
 
-- PHP 8.3+, Laravel 13
-- [Filament 5](https://filamentphp.com) for the admin panel
-- [spatie/laravel-permission](https://spatie.be/docs/laravel-permission) for roles & permissions
-- MySQL, Tailwind CSS + Alpine.js (via Breeze) for the public pages, Vite for asset bundling
+## Requirements
 
-## Getting started
+PHP 8.3+ with `intl`, `mbstring`, `zip`, `gd`, `bcmath`, `pdo_mysql` (or `pdo_pgsql`), Composer, Node 22, MySQL 8.
 
-**Requirements:** PHP 8.3+, Composer, Node.js, and a MySQL database.
+## Local setup
 
 ```bash
 composer install
-cp .env.example .env
-php artisan key:generate
-```
-
-Edit `.env` and point `DB_*` at a MySQL database (`DB_DATABASE=hospital_system` by default), then:
-
-```bash
+cp .env.example .env && php artisan key:generate
+# create the database named in .env, then:
 php artisan migrate
-php artisan db:seed
-npm install
-npm run build   # or `npm run dev` while developing
+php artisan db:seed            # DEVELOPMENT ONLY – creates demo staff (see below)
+npm ci && npm run dev          # or: npm run build
 php artisan serve
 ```
 
-Visit `http://localhost:8000` for the public site, or `http://localhost:8000/admin` for the admin panel.
+Development-only demo logins (created by `db:seed`, password `password`):
+`admin@hospital.test`, `receptionist@hospital.test`, `doctor@hospital.test`.
+**Never run the full seeder in production.**
 
-### Seeded accounts
+## Production
 
-`php artisan db:seed` creates one login per role, all with the password `password`:
+1. Set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, a fresh `APP_KEY`, DB and SMTP credentials (see `.env.example`).
+2. `composer install --no-dev -o && npm ci && npm run build`
+3. `php artisan migrate --force && php artisan db:seed --class=RoleSeeder --force && php artisan db:seed --class=PermissionSeeder --force`
+4. Create the first admin with `php artisan tinker` (`User::create([...])->assignRole('admin')`).
+5. `php artisan config:cache route:cache view:cache filament:optimize`
 
-| Role | Email |
-|---|---|
-| admin | `admin@hospital.test` |
-| receptionist | `receptionist@hospital.test` |
-| doctor | `doctor@hospital.test` (linked to the first seeded doctor) |
+Guides: `DEPLOY-EC2.md` (Ubuntu + Nginx), `render.yaml` + `Dockerfile` (Render), `compose.yaml` (Docker). Health checks: `/up` (framework) and `/health` (also checks the database).
 
-**Change or remove these before deploying anywhere real.**
-
-## Testing
+## Tests
 
 ```bash
 php artisan test
 ```
 
-Feature tests cover the public booking flow (happy path, no-doctor-available handling, double-booking rejection, duplicate-patient reuse, the signed success URL) and role/policy authorization (panel access gating, and what each role can and can't do).
+Covers booking rules (double booking, phone normalisation, consent, no overwriting of medical data, rate limiting), role/policy authorisation, security headers, SEO endpoints and error pages.
 
-## Notes for deployment
+## Architecture notes
 
-- Set `APP_DEBUG=false`, `APP_ENV=production`, and a correct `APP_URL` (including `https://`) before going live — the booking success page uses signed URLs, which are generated against `APP_URL`.
-- `MAIL_MAILER` defaults to `log` (emails are written to `storage/logs/laravel.log` instead of being sent). Point it at a real mail provider to have booking confirmations actually delivered.
-- SMS/WhatsApp notifications aren't wired in yet — the app runs fine without them; it's a planned addition once a provider is chosen.
-- No background queue worker is required; notifications are sent synchronously.
+- Authentication is Filament's `/admin/login`. `/login` redirects there; the old Breeze register/profile routes are disabled.
+- Authorisation: Spatie roles (`admin`, `receptionist`, `doctor`) → policies. Doctors are additionally scoped in Filament queries and policies.
+- Booking (`PatientController@store`) runs in one transaction with doctor rows locked, so two requests cannot take the same slot. Existing patients (matched on name + normalised phone) are only back-filled, never overwritten.
+- Security headers + nonce-based CSP are applied by `App\Http\Middleware\SecurityHeaders` (the Filament panel is exempt from CSP only).
+- Departments cannot be deleted (deactivate them instead); the DB restricts deleting departments/doctors that have dependants.
+- Timezone `Africa/Dar_es_Salaam`; phone numbers stored as `+255…`. Change via `APP_TIMEZONE` / `HOSPITAL_COUNTRY_CODE`.
+
+## Backups (must be configured on the server)
+
+This repo contains no backup job. Production must have: a nightly `mysqldump` (or managed-DB snapshots) kept ≥ 14 days and copied off-site (e.g. S3); `storage/app` backed up if uploads are ever enabled; and a restore drill (`mysql hospital_system < dump.sql`) tested at least once.
+
+## Before launch
+
+- Have `resources/views/privacy.blade.php` reviewed by counsel (Tanzania PDPA 2022).
+- Set real `HOSPITAL_PHONE`, `HOSPITAL_EMAIL`, `HOSPITAL_ADDRESS`.

@@ -1,2 +1,7 @@
 User-agent: *
-Disallow:
+Disallow: /admin
+Disallow: /login
+Disallow: /consultation/success/
+Disallow: /health
+
+Sitemap: /sitemap.xml
