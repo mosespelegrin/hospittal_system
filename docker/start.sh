@@ -24,6 +24,8 @@ php artisan view:cache
 php artisan filament:optimize || true
 php artisan migrate --force
 if [ "${RUN_SEED_ROLES:-true}" = "true" ]; then php artisan db:seed --class=RoleSeeder --force; php artisan db:seed --class=PermissionSeeder --force; fi
+# Default departments so online booking works (idempotent).
+if [ "${RUN_SEED_DEPARTMENTS:-true}" = "true" ]; then php artisan db:seed --class=DepartmentSeeder --force; fi
 # Create/refresh the first admin from env vars (Render dashboard).
 if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then php artisan db:seed --class=AdminSeeder --force; fi
 exec apache2-foreground

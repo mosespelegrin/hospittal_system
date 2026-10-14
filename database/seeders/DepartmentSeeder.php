@@ -21,11 +21,10 @@ class DepartmentSeeder extends Seeder
         ];
 
         foreach ($departments as $name) {
-            Department::create([
-                'name' => $name,
-                'description' => "Department of {$name}",
-                'status' => true,
-            ]);
+            Department::updateOrCreate(
+                ['name' => $name],
+                ['description' => "Department of {$name}", 'status' => true]
+            );
         }
     }
 }

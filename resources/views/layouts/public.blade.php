@@ -118,7 +118,7 @@
         @yield('content')
     </main>
 
-    <footer class="bg-[var(--teal-deep)] text-[var(--cream)]/70 mt-24">
+    <footer class="bg-[var(--teal-deep)] text-[#D6D3C8] mt-24">
         <div class="max-w-6xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-8 text-sm">
             <div>
                 <div class="font-display text-xl text-[var(--cream)] mb-2">Amani.Hospital</div>
@@ -136,7 +136,7 @@
                 @if(config('hospital.address'))<p>{{ config('hospital.address') }}</p>@endif
             </div>
         </div>
-        <div class="border-t border-[var(--cream)]/10 text-center text-xs py-4">
+        <div class="border-t border-[#2C4F4B] text-center text-xs py-4">
             &copy; {{ date('Y') }} {{ $siteName }}. All rights reserved. · <a href="{{ route('privacy') }}" class="underline-offset-2 hover:underline">Privacy Policy</a>
         </div>
     </footer>
