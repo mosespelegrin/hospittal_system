@@ -7,8 +7,7 @@ if [ -z "$APP_KEY" ]; then echo "APP_KEY is not set (php artisan key:generate --
 
 sed -ri "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -ri "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf
-APP_URL=$(printf %s "$APP_URL" | tr -d " 
-\"'"); export APP_URL
+APP_URL=$(printf %s "$APP_URL" | tr -d '[:space:]"'"'"); export APP_URL
 case "$APP_URL" in
   http://*|https://*) ;;
   *) if [ -n "$RENDER_EXTERNAL_URL" ]; then
