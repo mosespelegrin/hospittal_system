@@ -31,5 +31,6 @@ RUN composer dump-autoload --optimize --no-dev \
 COPY docker/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
 EXPOSE 80
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \n  CMD curl -fsS http://localhost:${PORT:-80}/up || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -fsS http://localhost:${PORT:-80}/up || exit 1
 CMD ["start.sh"]

@@ -43,6 +43,14 @@ class DoctorForm
                     ->relationship('user', 'name')
                     ->searchable()
                     ->nullable(),
+                TextInput::make('login_password')
+                    ->label('Create login with password')
+                    ->helperText('Optional: creates a doctor login using the email above and links it.')
+                    ->password()
+                    ->revealable()
+                    ->minLength(8)
+                    ->visibleOn('create')
+                    ->dehydrated(fn (?string $state) => filled($state)),
             ]);
     }
 }

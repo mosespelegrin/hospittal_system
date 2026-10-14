@@ -60,9 +60,14 @@ services:
         sync: false
       - key: MAIL_FROM_NAME
         value: Amani Hospital
+      - key: ADMIN_EMAIL
+        sync: false           # first admin login
+      - key: ADMIN_PASSWORD
+        sync: false           # use a strong password
 
 databases:
   - name: hospital-db
     plan: basic-256mb
     databaseName: hospital_system
     user: hospital
+    ipAllowList: []       # internal connections only

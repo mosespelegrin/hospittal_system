@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Patients\Tables;
 use App\Filament\Resources\Patients\PatientResource;
 use App\Models\Appointment;
 use App\Models\Doctor;
+use App\Models\Patient;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -21,6 +22,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TimePicker;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -65,13 +67,18 @@ class PatientsTable
             ])
             ->filters([
                 TrashedFilter::make(),
+                SelectFilter::make('gender')
+                    ->options(['male' => 'Male', 'female' => 'Female']),
+                SelectFilter::make('status')
+                    ->options(fn () => Patient::query()->distinct()->pluck('status', 'status')->filter()->all()),
             ])
             ->headerActions([
                 Action::make('exportCsv')
                     ->label('Export CSV')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
-                    ->action(fn () => static::exportCsv()),
+                    ->visible(fn () => auth()->user()?->hasAnyRole(['admin', 'receptionist']) ?? false)
+                    ->action(fn ($livewire) => static::exportCsv($livewire->getFilteredSortedTableQuery())),
             ])
             ->recordActions([
                 Action::make('assignDoctor')
@@ -143,38 +150,47 @@ class PatientsTable
     }
 
     /**
-     * A plain, synchronous CSV download of every patient visible to the
-     * current user (respects the same role-based scoping as the table).
-     * Cell values that start with =, +, -, or @ are quoted, since a raw
-     * leading formula character can execute code when the file is later
-     * opened in Excel/Sheets (CSV formula injection).
+     * Streams a CSV of the patients currently shown in the table (search and
+     * filters applied). Only admin and receptionist see the button, and the
+     * role is re-checked here because Livewire actions can be called directly.
+     * Cell values starting with =, +, -, or @ are quoted to prevent CSV
+     * formula injection when opened in Excel/Sheets.
      */
-    private static function exportCsv(): StreamedResponse
+    private static function exportCsv($query): StreamedResponse
     {
-        $patients = PatientResource::getEloquentQuery()->get();
+        abort_unless(auth()->user()?->hasAnyRole(['admin', 'receptionist']), 403);
 
         $escape = fn ($value) => preg_match('/^[=+\-@]/', (string) $value)
             ? "'" . $value
             : $value;
 
-        return response()->streamDownload(function () use ($patients, $escape) {
+        return response()->streamDownload(function () use ($query, $escape) {
             $handle = fopen('php://output', 'w');
+            fwrite($handle, "﻿"); // UTF-8 BOM so Excel reads accents correctly
 
-            fputcsv($handle, ['Patient Number', 'Full Name', 'Date of Birth', 'Gender', 'Phone', 'Email', 'Blood Group', 'Status', 'Registered At']);
+            fputcsv($handle, ['Patient Number', 'Full Name', 'Date of Birth', 'Gender', 'Phone', 'Email', 'Emergency Contact', 'Blood Group', 'Status', 'Registered At', 'Total Appointments', 'Last Appointment']);
 
-            foreach ($patients as $patient) {
-                fputcsv($handle, array_map($escape, [
-                    $patient->patient_number,
-                    $patient->full_name,
-                    $patient->date_of_birth?->format('Y-m-d'),
-                    $patient->gender,
-                    $patient->phone,
-                    $patient->email,
-                    $patient->blood_group,
-                    $patient->status,
-                    $patient->created_at?->format('Y-m-d H:i'),
-                ]));
-            }
+            $query->withCount('appointments')
+                ->withMax('appointments', 'appointment_date')
+                ->reorder('id')
+                ->chunkById(500, function ($patients) use ($handle, $escape) {
+                    foreach ($patients as $patient) {
+                        fputcsv($handle, array_map($escape, [
+                            $patient->patient_number,
+                            $patient->full_name,
+                            $patient->date_of_birth?->format('Y-m-d'),
+                            $patient->gender,
+                            $patient->phone,
+                            $patient->email,
+                            $patient->emergency_contact,
+                            $patient->blood_group,
+                            $patient->status,
+                            $patient->created_at?->format('Y-m-d H:i'),
+                            $patient->appointments_count,
+                            $patient->appointments_max_appointment_date,
+                        ]));
+                    }
+                });
 
             fclose($handle);
         }, 'patients-' . now()->format('Y-m-d') . '.csv');
