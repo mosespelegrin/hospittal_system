@@ -4,7 +4,7 @@ services:
   - type: web
     name: amani-hospital
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /up
     autoDeploy: true
     envVars:
@@ -67,7 +67,7 @@ services:
 
 databases:
   - name: hospital-db
-    plan: basic-256mb
+    plan: free
     databaseName: hospital_system
     user: hospital
     ipAllowList: []       # internal connections only
