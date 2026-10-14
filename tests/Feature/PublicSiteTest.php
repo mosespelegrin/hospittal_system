@@ -26,7 +26,7 @@ class PublicSiteTest extends TestCase
 
     public function test_booking_page_shows_an_empty_state_without_departments(): void
     {
-        $this->get('/consultation')->assertOk()->assertSee('Online booking isn&#039;t available yet', false);
+        $this->get('/consultation')->assertOk()->assertSee("Online booking isn't available yet", false);
     }
 
     public function test_security_headers_and_nonce_csp_are_sent(): void
