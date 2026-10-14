@@ -7,9 +7,16 @@ if [ -z "$APP_KEY" ]; then echo "APP_KEY is not set (php artisan key:generate --
 
 sed -ri "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -ri "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf
+APP_URL=$(printf %s "$APP_URL" | tr -d " 
+\"'"); export APP_URL
 case "$APP_URL" in
   http://*|https://*) ;;
-  *) echo "APP_URL must start with https:// (got: '$APP_URL'), fix it in Render > Environment" >&2; exit 1 ;;
+  *) if [ -n "$RENDER_EXTERNAL_URL" ]; then
+       echo "APP_URL invalid ('$APP_URL'); using RENDER_EXTERNAL_URL" >&2
+       export APP_URL="$RENDER_EXTERNAL_URL"
+     else
+       echo "APP_URL must start with https:// (got: '$APP_URL'), fix it in Render > Environment" >&2; exit 1
+     fi ;;
 esac
 
 php artisan config:cache
